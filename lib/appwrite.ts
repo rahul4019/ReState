@@ -21,6 +21,7 @@ export const account = new Account(client);
 export async function login() {
   try {
     const redirectUri = Linking.createURL("/");
+
     const response = await account.createOAuth2Token(
       OAuthProvider.Google,
       redirectUri,
@@ -33,14 +34,16 @@ export async function login() {
       redirectUri,
     );
 
-    if (browserResult.type === "success") throw new Error("Failed to login");
+    if (browserResult.type !== "success") {
+      throw new Error("Create OAuth2 token failed");
+    }
 
     const url = new URL(browserResult.url);
-
     const secret = url.searchParams.get("secret")?.toString();
     const userId = url.searchParams.get("userId")?.toString();
 
-    if (!secret || !userId) throw new Error("Failed to login");
+    if (!secret || !userId) throw new Error("Create OAuth2 token failed");
+
     const session = await account.createSession(userId, secret);
     if (!session) throw new Error("Failed to create a session");
 
@@ -61,13 +64,14 @@ export async function logout() {
   }
 }
 
-export async function getUser() {
+export async function getCurrentUser() {
   try {
-    const response = await account.get();
-    if (response.$id) {
-      const userAvatar = avatar.getInitials(response.name);
-      return { ...response, avatar: userAvatar.toString() };
+    const result = await account.get();
+    if (result.$id) {
+      const userAvatar = avatar.getInitials(result.name);
+      return { ...result, avatar: userAvatar.toString() };
     }
+    return null;
   } catch (error) {
     console.error(error);
     return null;
